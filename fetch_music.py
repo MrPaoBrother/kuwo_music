@@ -13,6 +13,8 @@ import json
 
 base_url = "http://www.kuwo.cn/api/www/artist/artistMusic?artistid={singer_id}&pn={page}&rn={page_size}"
 
+cookie = "__root_domain_v=.kuwo.cn; _qddaz=QD.jep4o0.nsle0h.k0mhkgdo; Hm_lvt_cdb524f42f0ce19b169a8071123a4797=1577888492; _ga=GA1.2.156973536.1577888492; _gid=GA1.2.1543256353.1577888492; Hm_lpvt_cdb524f42f0ce19b169a8071123a4797=1577890191; _gat=1; kw_token=83FFQT2QSLF"
+csrf = "83FFQT2QSLF"
 def batch_save(audios):
     try:
         Music.objects.bulk_create(audios)
@@ -23,10 +25,11 @@ def batch_save(audios):
                 Music.objects.update_or_create(
                     rid = audio.rid,
                     sid = audio.sid,
-                    default = dict(
+                    defaults = dict(
                         artist = audio.artist,
                         album_name = audio.album_name,
                         album_id = audio.album_id,
+                        music_name = audio.music_name,
                         duration = audio.duration,
                         pub_date = audio.pub_date
                     )
@@ -51,13 +54,19 @@ def batch_save_link(links):
             except Exception as e:
                 print "[batch_save_link] error:%s" % str(e)
 
-def fetch_html(url, retry=10, timeout=300):
+def fetch_html(url, headers = {}, retry=10, timeout=300):
     while retry > 0:
-        rsp = requests.get(url, timeout=timeout)
-        if rsp.status_code == 200:
-            return rsp.text
-        retry -= 1
-        time.sleep(0.5)
+        try:
+            rsp = requests.get(url, timeout=timeout, headers=headers)
+            if rsp.status_code == 200:
+                return rsp.text
+            retry -= 1
+            time.sleep(0.5)
+        except Exception as e:
+            print str(e)
+            print "retrying.... remain:%s" % retry
+            retry -= 1
+            time.sleep(5)
     return ""
 
 def convert_to_audios(html, sid):
@@ -70,6 +79,7 @@ def convert_to_audios(html, sid):
         audio.rid = item.get("rid", 0)
         audio.artist = item.get("artist", 0)
         audio.album_name = item.get("album", 0)
+        audio.music_name = item.get("name", 0)
         audio.album_id = item.get("albumid", 0)
         audio.duration = item.get("duration", 0)
         audio.pub_date = item.get("releaseDate", "")
@@ -84,14 +94,14 @@ def process_singer(sid):
     page = 1
     page_size = 15000
     url = base_url.format(singer_id=sid, page=page, page_size=page_size)
-    html = fetch_html(url=url)
+    html = fetch_html(url=url, headers={"cookie":cookie, "csrf":csrf})
     audios = convert_to_audios(html, sid)
     print "[process_singer] sid:%s fetch count:%s" % (sid, len(audios))
     batch_save(audios)
 
 def process_music_url():
     music_url = "http://www.kuwo.cn/url?format=mp3&rid={rid}&response=url&type=convert_url3&br=128kmp393"
-    start = 22000
+    start = 0
     batch_size = 1000
     total = Music.objects.count()
     count = 0
@@ -125,7 +135,7 @@ def process_music_url():
         start += batch_size
 
 def process():
-    sids = get_sid_list()
+    sids = get_sid_list()[80:]
     count = 0
     for sid in sids:
         if count % 5 == 0:
@@ -135,4 +145,4 @@ def process():
         process_singer(sid)
 
 if __name__ == "__main__":
-    process_music_url()
+    process()

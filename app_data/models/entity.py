@@ -26,6 +26,7 @@ class Music(models.Model):
     sid = models.IntegerField(default=0)
     rid = models.IntegerField(default=0)
     artist = models.CharField(max_length=255, default="")
+    music_name = models.CharField(max_length=255, default="")
     album_name = models.CharField(max_length=255, default="")
     album_id = models.IntegerField(default=0)
     duration = models.IntegerField(default=0)

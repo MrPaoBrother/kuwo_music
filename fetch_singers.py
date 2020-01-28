@@ -10,6 +10,7 @@ import settings
 import requests
 import time
 import json
+import datetime
 
 base_url = "http://www.kuwo.cn/api/www/artist/artistInfo?category=0&prefix=&pn={page}&rn={page_size}"
 
@@ -22,11 +23,11 @@ def batch_save(singers):
             Singer.objects.update_or_create(
                 singer_id = singer.singer_id,
                 platform = singer.platform,
-                default = dict(
+                defaults = dict(
                     singer_name = singer.singer_name,
                     fans_num = singer.fans_num,
                     music_num = singer.music_num,
-                    album_num = singer.album_num
+                    album_num = singer.album_num,
                 )
             )
 
@@ -39,7 +40,8 @@ def fetch_html(url, retry=10, timeout=20):
         time.sleep(1)
     return ""
 
-def get_total_page():
+def get_total_singers():
+    import pdb;pdb.set_trace()
     url = base_url.format(page=1, page_size=1)
     return json.loads(fetch_html(url=url)).get("data", dict()).get("total", 0)
 
@@ -58,7 +60,7 @@ def convert_to_singers(html):
     return singers
 
 def fetch():
-    total_nums = int(get_total_page())
+    total_nums = int(get_total_singers())
     page = 1
     page_size = 1000
     while True:
@@ -72,4 +74,5 @@ def fetch():
         page += 1
 
 if __name__ == "__main__":
-    fetch()
+    # fetch()
+    print get_total_singers()

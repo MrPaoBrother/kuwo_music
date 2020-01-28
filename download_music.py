@@ -19,7 +19,6 @@ def download(url, filename):
         fs.write(rsp.content)
 
 def download1(rid):
-
     url = base_url.format(rid=rid)
     html = fetch_html(url)
 
